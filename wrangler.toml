@@ -1,0 +1,13 @@
+name = "github-integration-bot"
+main = "./src/server.js"
+compatibility_date="2026-03-13"
+
+[observability]
+enabled = true
+
+# [secrets]
+# DISCORD_TOKEN
+# DISCORD_PUBLIC_KEY
+# DISCORD_APPLICATION_ID
+# DISCORD_TEST_GUILD_ID
+# DISCORD_WEBHOOK_URL
