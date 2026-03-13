@@ -12,3 +12,8 @@ export const SET_COMMAND = {
   name: 'set',
   description: 'Set channel to use.',
 };
+
+export const CHECK_COMMAND = {
+  name: 'check',
+  description: 'Check channel being used.',
+};
