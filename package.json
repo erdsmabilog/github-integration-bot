@@ -27,9 +27,10 @@
     "mocha": "^11.7.5",
     "ngrok": "^4.2.2",
     "sinon": "^21.0.0",
-    "wrangler": "^4.13.2"
+    "wrangler": "^4.35.0"
   },
   "overrides": {
+    "wrangler": "^4.35.0",
     "diff": "^8.0.3",
     "serialize-javascript": "^7.0.4",
     "glob": "^10.5.0"
