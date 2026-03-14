@@ -11,10 +11,10 @@ import {
 import { STATUS_COMMAND } from './commands.js';
 import { InteractionResponseFlags } from 'discord-interactions';
 
-const DEFAULT_REVIEW_COUNT = 2;
+// const DEFAULT_REVIEW_COUNT = 2;
 // let guildId = null;
 // let channelId = null;
-let activePullRequests = {}
+// let activePullRequests = {}
 
 class JsonResponse extends Response {
   constructor(body, init) {
@@ -111,7 +111,7 @@ router.post('/webhook', async (request, env) => {
   if (githubEvent === 'pull_request') {
     const action = body.action;
     if (action === 'opened' || action === 'reopened') {
-      activePullRequests[body.pull_request.id] = { count: DEFAULT_REVIEW_COUNT };
+      // activePullRequests[body.pull_request.id] = { count: DEFAULT_REVIEW_COUNT };
       message = `${body.pull_request.user.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
         `Please review this at ${body.pull_request.html_url}`;
     } else if (action === 'closed') {
@@ -121,26 +121,27 @@ router.post('/webhook', async (request, env) => {
     // else {
     //   message = `Unhandled action for issues: ${action}`;
     // }
-  } else if (githubEvent === 'pull_request_review') {
-    const action = body.action;
-    if (action === 'submitted' && body.review.state === 'approved') {
-      if (activePullRequests[body.pull_request.id] ?? false) {
-        activePullRequests[body.pull_request.id].count -= 1;
-
-        if (activePullRequests[body.pull_request.id].count === 0) {
-          message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
-          delete activePullRequests[body.pull_request.id];
-        } else {
-          message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
-            `${activePullRequests[body.pull_request.id].count} review(s) remaining.`;
-        }
-      }
-    }
-    // DEBUGGING/TESTING
-    // else {
-    //   message = `Unhandled action for issues: ${action}`;
-    // }
   }
+  // else if (githubEvent === 'pull_request_review') {
+  //   const action = body.action;
+  //   if (action === 'submitted' && body.review.state === 'approved') {
+  //     if (activePullRequests[body.pull_request.id] ?? false) {
+  //       activePullRequests[body.pull_request.id].count -= 1;
+
+  //       if (activePullRequests[body.pull_request.id].count === 0) {
+  //         message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
+  //         delete activePullRequests[body.pull_request.id];
+  //       } else {
+  //         message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
+  //           `${activePullRequests[body.pull_request.id].count} review(s) remaining.`;
+  //       }
+  //     }
+  //   }
+  // DEBUGGING/TESTING
+  // else {
+  //   message = `Unhandled action for issues: ${action}`;
+  // }
+  // }
   // DEBUGGING/TESTING
   // else if (githubEvent === 'ping') {
   //   message = 'GitHub sent the ping event';
@@ -161,9 +162,9 @@ router.post('/webhook', async (request, env) => {
 
       if (!res.ok) console.error('Discord response text:', await res.text());
     } catch (err) {
-    console.error('Failed to send Discord message:', err);
+      console.error('Failed to send Discord message:', err);
+    }
   }
-}
 
   return response;
 });
