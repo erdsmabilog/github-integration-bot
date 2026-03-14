@@ -8,12 +8,12 @@ import {
   InteractionType,
   verifyKey,
 } from 'discord-interactions';
-import { STATUS_COMMAND, SET_COMMAND, CHECK_COMMAND } from './commands.js';
+import { STATUS_COMMAND } from './commands.js';
 import { InteractionResponseFlags } from 'discord-interactions';
 
 const DEFAULT_REVIEW_COUNT = 2;
-let guildId = null;
-let channelId = null;
+// let guildId = null;
+// let channelId = null;
 let activePullRequests = {}
 
 class JsonResponse extends Response {
@@ -71,27 +71,27 @@ router.post('/', async (request, env) => {
           },
         });
       }
-      case SET_COMMAND.name.toLowerCase(): {
-        guildId = interaction.channel.guild_id;
-        channelId = interaction.channel.id;
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: `Channel has been set to https://discord.com/channels/${guildId}/${channelId}`,
-          },
-        });
-      }
-      case CHECK_COMMAND.name.toLowerCase(): {
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: (guildId && channelId) ?
-              `Channel is currently set to https://discord.com/channels/${guildId}/${channelId}` :
-              `Channel has not been set.\n` +
-              `Use /set within a channel to set it.`,
-          },
-        });
-      }
+      // case SET_COMMAND.name.toLowerCase(): {
+      //   guildId = interaction.channel.guild_id;
+      //   channelId = interaction.channel.id;
+      //   return new JsonResponse({
+      //     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      //     data: {
+      //       content: `Channel has been set to https://discord.com/channels/${guildId}/${channelId}`,
+      //     },
+      //   });
+      // }
+      // case CHECK_COMMAND.name.toLowerCase(): {
+      //   return new JsonResponse({
+      //     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      //     data: {
+      //       content: (guildId && channelId) ?
+      //         `Channel is currently set to https://discord.com/channels/${guildId}/${channelId}` :
+      //         `Channel has not been set.\n` +
+      //         `Use /set within a channel to set it.`,
+      //     },
+      //   });
+      // }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });
     }
@@ -104,7 +104,7 @@ router.post('/', async (request, env) => {
 router.post('/webhook', async (request, env) => {
   const githubEvent = request.headers.get('x-github-event');
   const body = await request.json();
-  
+
   const response = new Response('Accepted', { status: 202 });
 
   let message;
@@ -113,10 +113,10 @@ router.post('/webhook', async (request, env) => {
     if (action === 'opened' || action === 'reopened') {
       activePullRequests[body.pull_request.id] = { count: DEFAULT_REVIEW_COUNT };
       message = `${body.pull_request.user.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
-                `Please review this at ${body.pull_request.html_url}`;
+        `Please review this at ${body.pull_request.html_url}`;
     } else if (action === 'closed') {
       message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) was closed by ${body.pull_request.user.login}`;
-    } 
+    }
     // DEBUGGING/TESTING
     // else {
     //   message = `Unhandled action for issues: ${action}`;
@@ -132,15 +132,15 @@ router.post('/webhook', async (request, env) => {
           delete activePullRequests[body.pull_request.id];
         } else {
           message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
-                    `${activePullRequests[body.pull_request.id].count} review(s) remaining.`;
+            `${activePullRequests[body.pull_request.id].count} review(s) remaining.`;
         }
       }
-    } 
+    }
     // DEBUGGING/TESTING
     // else {
     //   message = `Unhandled action for issues: ${action}`;
     // }
-  } 
+  }
   // DEBUGGING/TESTING
   // else if (githubEvent === 'ping') {
   //   message = 'GitHub sent the ping event';
@@ -150,24 +150,20 @@ router.post('/webhook', async (request, env) => {
 
   if (message) {
     try {
-      if (channelId) {
-        const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bot ${env.DISCORD_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ content: message }),
-        });
+      const res = await fetch(`https://discord.com/api/v10/channels/${env.DISCORD_CHANNEL_ID}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bot ${env.DISCORD_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: message }),
+      });
 
-        if (!res.ok) console.error('Discord response text:', await res.text());
-      } else {
-        console.error('Channel ID not set.');
-      }
+      if (!res.ok) console.error('Discord response text:', await res.text());
     } catch (err) {
-      console.error('Failed to send Discord message:', err);
-    }
+    console.error('Failed to send Discord message:', err);
   }
+}
 
   return response;
 });

@@ -1,4 +1,4 @@
-import { STATUS_COMMAND, SET_COMMAND, CHECK_COMMAND } from './commands.js';
+import { STATUS_COMMAND } from './commands.js';
 import dotenv from 'dotenv';
 import process from 'node:process';
 
@@ -34,7 +34,7 @@ const response = await fetch(url, {
     Authorization: `Bot ${token}`,
   },
   method: 'PUT',
-  body: JSON.stringify([STATUS_COMMAND, SET_COMMAND, CHECK_COMMAND]),
+  body: JSON.stringify([STATUS_COMMAND]),
 });
 
 if (response.ok) {

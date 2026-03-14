@@ -8,12 +8,12 @@ export const STATUS_COMMAND = {
   description: 'Check bot status.',
 };
 
-export const SET_COMMAND = {
-  name: 'set',
-  description: 'Set channel to use.',
-};
+// export const SET_COMMAND = {
+//   name: 'set',
+//   description: 'Set channel to use.',
+// };
 
-export const CHECK_COMMAND = {
-  name: 'check',
-  description: 'Check channel being used.',
-};
+// export const CHECK_COMMAND = {
+//   name: 'check',
+//   description: 'Check channel being used.',
+// };
