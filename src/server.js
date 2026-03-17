@@ -118,7 +118,7 @@ router.post('/webhook', async (request, env) => {
       message = `${body.pull_request.user.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
         `Please review this at ${body.pull_request.html_url}`;
     } else if (action === 'closed') {
-      message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) was closed by ${body.pull_request.user.login}`;
+      message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) was closed by ${body.sender.login}`;
     }
     // DEBUGGING/TESTING
     // else {
