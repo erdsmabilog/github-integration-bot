@@ -7,13 +7,11 @@ import {
   InteractionResponseType,
   InteractionType,
   verifyKey,
+  InteractionResponseFlags
 } from 'discord-interactions';
 import { STATUS_COMMAND, SET_COMMAND, CHECK_COMMAND } from './commands.js';
-import { InteractionResponseFlags } from 'discord-interactions';
 
-// const DEFAULT_REVIEW_COUNT = 2;
-// let activePullRequests = {}
-
+const DEFAULT_REVIEW_COUNT = 2;
 class JsonResponse extends Response {
   constructor(body, init) {
     const jsonBody = JSON.stringify(body);
@@ -113,10 +111,13 @@ router.post('/webhook', async (request, env) => {
   let message;
   if (githubEvent === 'pull_request') {
     const action = body.action;
-    if (action === 'opened' || action === 'reopened') {
-      // activePullRequests[body.pull_request.id] = { count: DEFAULT_REVIEW_COUNT };
-      message = `${body.pull_request.user.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
+
+    if (action === 'opened') {
+      await env.PR_APPROVALS_NEEDED.put(`${body.pull_request.id}`, DEFAULT_REVIEW_COUNT);
+      message = `${body.sender.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
         `Please review this at ${body.pull_request.html_url}`;
+    } else if (action === 'reopened') {
+      message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) was reopened by ${body.sender.login}`;
     } else if (action === 'closed') {
       message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) was closed by ${body.sender.login}`;
     }
@@ -124,22 +125,23 @@ router.post('/webhook', async (request, env) => {
     // else {
     //   message = `Unhandled action for issues: ${action}`;
     // }
-  }
-  // else if (githubEvent === 'pull_request_review') {
-  //   const action = body.action;
-  //   if (action === 'submitted' && body.review.state === 'approved') {
-  //     if (activePullRequests[body.pull_request.id] ?? false) {
-  //       activePullRequests[body.pull_request.id].count -= 1;
+  } else if (githubEvent === 'pull_request_review') {
+    const action = body.action;
 
-  //       if (activePullRequests[body.pull_request.id].count === 0) {
-  //         message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
-  //         delete activePullRequests[body.pull_request.id];
-  //       } else {
-  //         message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
-  //           `${activePullRequests[body.pull_request.id].count} review(s) remaining.`;
-  //       }
-  //     }
-  //   }
+    if (action === 'submitted' && body.review.state === 'approved') {
+      if (activePullRequests[body.pull_request.id] ?? false) {
+        const approvalsNeeded = await env.PR_APPROVALS_NEEDED.get(`${body.pull_request.id}`) - 1;
+
+        if (approvalsNeeded === 0) {
+          message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
+          await env.PR_APPROVALS_NEEDED.delete(`${body.pull_request.id}`);
+        } else {
+          message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
+            `${approvalsNeeded} review(s) remaining.`;
+          await env.PR_APPROVALS_NEEDED.put(`${body.pull_request.id}`, approvalsNeeded);
+        }
+      }
+    }
   // DEBUGGING/TESTING
   // else {
   //   message = `Unhandled action for issues: ${action}`;
@@ -151,6 +153,7 @@ router.post('/webhook', async (request, env) => {
   // } else {
   //   message = `Unhandled event: ${githubEvent}`;
   // }
+
   const DISCORD_GUILD_IDS = await env.CHANNEL_ID.list()
     .then((array) => {
       return array.keys();

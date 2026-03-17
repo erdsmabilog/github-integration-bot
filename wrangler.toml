@@ -6,7 +6,7 @@ compatibility_date="2026-03-13"
 enabled = true
 
 [[kv_namespaces]]
-binding = "PR_APPROVED_COUNT"
+binding = "PR_APPROVALS_NEEDED"
 id = "8595f023dbbc4623a00ebe46ddbfe959"
 
 [[kv_namespaces]]
