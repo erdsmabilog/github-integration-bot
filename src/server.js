@@ -132,16 +132,17 @@ router.post('/webhook', async (request, env) => {
       try {
         const approvalsNeededStr = await env.PR_APPROVALS_NEEDED.get(body.pull_request.id);
 
-        if (approvalsNeeded === undefined) throw new Error(`Approvals needed for PR ${body.pull_request.id} is undefined`);
+        if (approvalsNeededStr === undefined) throw new Error(`Approvals needed for PR ${body.pull_request.id} is undefined`);
         
         const approvalsNeeded = Number(approvalsNeededStr) - 1;
 
         if (approvalsNeeded === 0) {
-          message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
+          message = `Pull request [${body.pull_request.title}](<${body.pull_request.html_url}>) has been fully approved!\n` +
+                    `The pull request may now be merged.`;
           await env.PR_APPROVALS_NEEDED.delete(`${body.pull_request.id}`);
         } else {
-          message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
-            `${approvalsNeeded} review(s) remaining.`;
+          message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) has been approved! ` +
+                    `${approvalsNeeded} ${approvalsNeeded > 1 ? "approvals" : "approval"} is still needed.`;
           await env.PR_APPROVALS_NEEDED.put(body.pull_request.id, approvalsNeeded);
         }
       } catch (err) {
