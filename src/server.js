@@ -105,7 +105,6 @@ router.post('/', async (request, env) => {
 router.post('/webhook', async (request, env) => {
   const githubEvent = request.headers.get('x-github-event');
   const body = await request.json();
-
   const response = new Response('Accepted', { status: 202 });
 
   let message;
@@ -133,16 +132,16 @@ router.post('/webhook', async (request, env) => {
         const approvalsNeededStr = await env.PR_APPROVALS_NEEDED.get(body.pull_request.id);
 
         if (approvalsNeededStr === undefined) throw new Error(`Approvals needed for PR ${body.pull_request.id} is undefined`);
-        
+
         const approvalsNeeded = Number(approvalsNeededStr) - 1;
 
         if (approvalsNeeded === 0) {
           message = `Pull request [${body.pull_request.title}](<${body.pull_request.html_url}>) has been fully approved!\n` +
-                    `The pull request may now be merged.`;
+            `The pull request may now be merged.`;
           await env.PR_APPROVALS_NEEDED.delete(`${body.pull_request.id}`);
         } else {
           message = `[${body.pull_request.title}](<${body.pull_request.html_url}>) has been approved! ` +
-                    `${approvalsNeeded} ${approvalsNeeded > 1 ? "approvals" : "approval"} is still needed.`;
+            `${approvalsNeeded} ${approvalsNeeded > 1 ? "approvals" : "approval"} is still needed.`;
           await env.PR_APPROVALS_NEEDED.put(body.pull_request.id, approvalsNeeded);
         }
       } catch (err) {
@@ -157,38 +156,51 @@ router.post('/webhook', async (request, env) => {
   // DEBUGGING/TESTING
   // else if (githubEvent === 'ping') {
   //   message = 'GitHub sent the ping event';
-  // } else {
+  // }
+  // else {
   //   message = `Unhandled event: ${githubEvent}`;
   // }
 
-  const DISCORD_GUILD_IDS = await env.CHANNEL_ID.list()
-    .then((array) => {
-      return array.keys();
-    });
+  let DISCORD_GUILD_IDS = [];
 
-  if (message) {
-    try {
-      await Promise.all(DISCORD_GUILD_IDS.map((guildId) => {
-        return env.CHANNEL_ID.get(guildId).then((channelId) => {
-          if (channelId) {
-            return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bot ${env.DISCORD_TOKEN}`,
-              },
-              body: JSON.stringify({
-                content: message,
-              }),
-            });
-          } else {
+  try {
+    DISCORD_GUILD_IDS = await env.CHANNEL_ID.list()
+      .then((array) => {
+        return array.keys;
+      });
+  } catch (err) {
+    console.error('Error listing guild IDs from KV:', err);
+  }
+
+  if (message && DISCORD_GUILD_IDS.length > 0) {
+    await Promise.all(
+      DISCORD_GUILD_IDS.map(async (guildObj) => {
+        const guildId = guildObj.name;
+
+        try {
+          const channelId = await env.CHANNEL_ID.get(guildId);
+
+          if (!channelId) {
             console.error(`No channel ID found for guild ${guildId}`);
+            return;
           }
-        });
-      }));
-    } catch (err) {
-      console.error('Failed to send Discord message:', err);
-    }
+
+          await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bot ${env.DISCORD_TOKEN}`,
+            },
+            body: JSON.stringify({
+              content: message,
+            }),
+          });
+
+        } catch (error) {
+          console.error(`Couldn't send message to guild ${guildId}`, error);
+        }
+      })
+    );
   }
 
   return response;
