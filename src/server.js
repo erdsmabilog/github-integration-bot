@@ -70,7 +70,7 @@ router.post('/', async (request, env) => {
       case SET_COMMAND.name.toLowerCase(): {
         const guildId = interaction.channel.guild_id;
         const channelId = interaction.channel.id;
-        await env.CHANNEL_ID.put(`${guildId}`, `${channelId}`);
+        await env.CHANNEL_ID.put(guildId, channelId);
 
         return new JsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -113,7 +113,7 @@ router.post('/webhook', async (request, env) => {
     const action = body.action;
 
     if (action === 'opened') {
-      await env.PR_APPROVALS_NEEDED.put(`${body.pull_request.id}`, DEFAULT_REVIEW_COUNT);
+      await env.PR_APPROVALS_NEEDED.put(body.pull_request.id, DEFAULT_REVIEW_COUNT);
       message = `${body.sender.login} has created a pull request from ${body.pull_request.head.ref} to ${body.pull_request.base.ref}\n` +
         `Please review this at ${body.pull_request.html_url}`;
     } else if (action === 'reopened') {
@@ -129,8 +129,12 @@ router.post('/webhook', async (request, env) => {
     const action = body.action;
 
     if (action === 'submitted' && body.review.state === 'approved') {
-      if (activePullRequests[body.pull_request.id] ?? false) {
-        const approvalsNeeded = await env.PR_APPROVALS_NEEDED.get(`${body.pull_request.id}`) - 1;
+      try {
+        const approvalsNeededStr = await env.PR_APPROVALS_NEEDED.get(body.pull_request.id);
+
+        if (approvalsNeeded === undefined) throw new Error(`Approvals needed for PR ${body.pull_request.id} is undefined`);
+        
+        const approvalsNeeded = Number(approvalsNeededStr) - 1;
 
         if (approvalsNeeded === 0) {
           message = `All reviews for [${body.pull_request.title}](<${body.pull_request.html_url}>) have been approved!`;
@@ -138,8 +142,10 @@ router.post('/webhook', async (request, env) => {
         } else {
           message = `A review has been approved for [${body.pull_request.title}](<${body.pull_request.html_url}>). ` +
             `${approvalsNeeded} review(s) remaining.`;
-          await env.PR_APPROVALS_NEEDED.put(`${body.pull_request.id}`, approvalsNeeded);
+          await env.PR_APPROVALS_NEEDED.put(body.pull_request.id, approvalsNeeded);
         }
+      } catch (err) {
+        console.error('Error getting values needed from KV:', err);
       }
     }
     // DEBUGGING/TESTING
@@ -162,7 +168,7 @@ router.post('/webhook', async (request, env) => {
   if (message) {
     try {
       await Promise.all(DISCORD_GUILD_IDS.map((guildId) => {
-        return env.CHANNEL_ID.get(`${guildId}`).then((channelId) => {
+        return env.CHANNEL_ID.get(guildId).then((channelId) => {
           if (channelId) {
             return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
               method: 'POST',
