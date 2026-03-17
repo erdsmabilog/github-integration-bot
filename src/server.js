@@ -72,7 +72,7 @@ router.post('/', async (request, env) => {
       case SET_COMMAND.name.toLowerCase(): {
         const guildId = interaction.channel.guild_id;
         const channelId = interaction.channel.id;
-        await env.CHANNEL_ID.put(guildId, channelId);
+        await env.CHANNEL_ID.put(`${guildId}`, `${channelId}`);
 
         return new JsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -159,7 +159,7 @@ router.post('/webhook', async (request, env) => {
   if (message) {
     try {
       await Promise.all(DISCORD_GUILD_IDS.map((guildId) => {
-        return env.CHANNEL_ID.get(guildId).then((channelId) => {
+        return env.CHANNEL_ID.get(`${guildId}`).then((channelId) => {
           if (channelId) {
             return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
               method: 'POST',
