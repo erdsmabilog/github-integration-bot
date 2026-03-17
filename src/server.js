@@ -8,7 +8,7 @@ import {
   InteractionType,
   verifyKey,
 } from 'discord-interactions';
-import { STATUS_COMMAND } from './commands.js';
+import { STATUS_COMMAND, SET_COMMAND, CHECK_COMMAND } from './commands.js';
 import { InteractionResponseFlags } from 'discord-interactions';
 
 // const DEFAULT_REVIEW_COUNT = 2;
