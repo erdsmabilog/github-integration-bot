@@ -142,11 +142,11 @@ router.post('/webhook', async (request, env) => {
         }
       }
     }
-  // DEBUGGING/TESTING
-  // else {
-  //   message = `Unhandled action for issues: ${action}`;
-  // }
-  // }
+    // DEBUGGING/TESTING
+    // else {
+    //   message = `Unhandled action for issues: ${action}`;
+    // }
+  }
   // DEBUGGING/TESTING
   // else if (githubEvent === 'ping') {
   //   message = 'GitHub sent the ping event';
