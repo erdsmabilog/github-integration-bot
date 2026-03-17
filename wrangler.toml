@@ -5,8 +5,15 @@ compatibility_date="2026-03-13"
 [observability]
 enabled = true
 
+[[kv_namespaces]]
+binding = "PR_APPROVED_COUNT"
+id = "8595f023dbbc4623a00ebe46ddbfe959"
+
+[[kv_namespaces]]
+binding = "CHANNEL_ID"
+id = "64b4b22f0b704c76acbed7d5f2655ae6"
+
 # [secrets]
 # DISCORD_TOKEN
 # DISCORD_PUBLIC_KEY
 # DISCORD_APPLICATION_ID
-# DISCORD_CHANNEL_ID

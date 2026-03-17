@@ -12,8 +12,6 @@ import { STATUS_COMMAND } from './commands.js';
 import { InteractionResponseFlags } from 'discord-interactions';
 
 // const DEFAULT_REVIEW_COUNT = 2;
-// let guildId = null;
-// let channelId = null;
 // let activePullRequests = {}
 
 class JsonResponse extends Response {
@@ -71,27 +69,32 @@ router.post('/', async (request, env) => {
           },
         });
       }
-      // case SET_COMMAND.name.toLowerCase(): {
-      //   guildId = interaction.channel.guild_id;
-      //   channelId = interaction.channel.id;
-      //   return new JsonResponse({
-      //     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      //     data: {
-      //       content: `Channel has been set to https://discord.com/channels/${guildId}/${channelId}`,
-      //     },
-      //   });
-      // }
-      // case CHECK_COMMAND.name.toLowerCase(): {
-      //   return new JsonResponse({
-      //     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      //     data: {
-      //       content: (guildId && channelId) ?
-      //         `Channel is currently set to https://discord.com/channels/${guildId}/${channelId}` :
-      //         `Channel has not been set.\n` +
-      //         `Use /set within a channel to set it.`,
-      //     },
-      //   });
-      // }
+      case SET_COMMAND.name.toLowerCase(): {
+        const guildId = interaction.channel.guild_id;
+        const channelId = interaction.channel.id;
+        await env.CHANNEL_ID.put(guildId, channelId);
+
+        return new JsonResponse({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: `Channel has been set to https://discord.com/channels/${guildId}/${channelId}`,
+          },
+        });
+      }
+      case CHECK_COMMAND.name.toLowerCase(): {
+        const guildId = interaction.channel.guild_id;
+        const channelId = await env.CHANNEL_ID.get(guildId);
+
+        return new JsonResponse({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: (guildId && channelId) ?
+              `Channel is currently set to https://discord.com/channels/${guildId}/${channelId}` :
+              `Channel has not been set.\n` +
+              `Use /set within a channel to set it.`,
+          },
+        });
+      }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });
     }
@@ -148,19 +151,31 @@ router.post('/webhook', async (request, env) => {
   // } else {
   //   message = `Unhandled event: ${githubEvent}`;
   // }
+  const DISCORD_GUILD_IDS = await env.CHANNEL_ID.list()
+    .then((array) => {
+      return array.keys();
+    });
 
   if (message) {
     try {
-      const res = await fetch(`https://discord.com/api/v10/channels/${env.DISCORD_CHANNEL_ID}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bot ${env.DISCORD_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: message }),
-      });
-
-      if (!res.ok) console.error('Discord response text:', await res.text());
+      await Promise.all(DISCORD_GUILD_IDS.map((guildId) => {
+        return env.CHANNEL_ID.get(guildId).then((channelId) => {
+          if (channelId) {
+            return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${env.DISCORD_TOKEN}`,
+              },
+              body: JSON.stringify({
+                content: message,
+              }),
+            });
+          } else {
+            console.error(`No channel ID found for guild ${guildId}`);
+          }
+        });
+      }));
     } catch (err) {
       console.error('Failed to send Discord message:', err);
     }
